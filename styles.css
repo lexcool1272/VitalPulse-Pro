@@ -28,6 +28,14 @@ canvas {
     border-radius: 10px;
 }
 
+.bpm-display {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    color: #007bff; /* Blue color for BPM */
+}
+
 .info {
     margin-top: 20px;
     text-align: center;
