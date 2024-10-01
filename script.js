@@ -10,13 +10,15 @@ const flatlineStatusDisplay = document.getElementById("flatlineStatus");
 
 let monitoring = false;
 let intervalId;
-let heartRate = getRandomHeartRate();
+let heartRate = 92; // Initial heart rate
+let flatlineActive = false;
 
 function startMonitoring() {
     monitoring = true;
     heartRateDisplay.textContent = heartRate;
-    startBeating();
-    setRandomValues(); // Set random values for the first time
+    drawHeartbeat();
+    setRandomValues();
+    startBPMChanges(); // Start the BPM changes
 }
 
 function stopMonitoring() {
@@ -25,71 +27,91 @@ function stopMonitoring() {
     flatline();
 }
 
-function startBeating() {
-    intervalId = setInterval(() => {
-        if (monitoring) {
-            drawHeartbeat(heartRate);
-        }
-    }, 100); // Adjusted to be smoother
+function drawHeartbeat() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Change heart rate every 30 seconds to 2 minutes
+    // Check if flatline is active
+    if (flatlineActive) {
+        drawFlatline();
+        return;
+    }
+
+    // Draw heart rate pulse
+    drawPulses();
+}
+
+function drawPulses() {
+    const pulseCount = 5; // Number of pulses to draw
+    const pulseHeight = 60; // Height of each pulse
+
+    // Calculate pulse width
+    const pulseWidth = canvas.width / pulseCount;
+
+    for (let i = 0; i < pulseCount; i++) {
+        const x = i * pulseWidth + (pulseWidth / 2);
+        const y = canvas.height / 2 - pulseHeight;
+        const opacity = i % 2 === 0 ? 1 : 0.5; // Alternate opacity
+        ctx.fillStyle = `rgba(0, 123, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height / 2);
+        ctx.lineTo(x + 20, y);
+        ctx.lineTo(x + 40, canvas.height / 2);
+        ctx.lineTo(x + 20, canvas.height / 2 + pulseHeight);
+        ctx.fill();
+    }
+
+    setTimeout(drawHeartbeat, 500); // Draw heartbeat every half second
+}
+
+function drawFlatline() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#ff0000"; // Red color for flatline
+    ctx.stroke();
+}
+
+function flatline() {
+    flatlineActive = true;
+    flatlineStatusDisplay.textContent = "Yes";
+    heartRateDisplay.textContent = "0"; // Display 0 BPM
+    drawFlatline(); // Draw flatline immediately
+}
+
+function setRandomValues() {
+    // Set random values for the info panel
+    co2StatusDisplay.textContent = "True";
+    plugStatusDisplay.textContent = "True";
+    spo2Display.textContent = Math.floor(Math.random() * (100 - 90 + 1)) + 90; // Oxygen saturation between 90 and 100
+    temperatureDisplay.textContent = (Math.random() * (37 - 36) + 36).toFixed(1); // Temperature between 36°C and 37°C
+    respiratoryRateDisplay.textContent = Math.floor(Math.random() * (20 - 12 + 1)) + 12; // Respiratory rate between 12 and 20
+}
+
+function startBPMChanges() {
     setInterval(() => {
-        if (monitoring) {
-            heartRate = getRandomHeartRate();
-            heartRateDisplay.textContent = heartRate;
-            updateOtherValues();
+        if (!monitoring) return;
+
+        // Randomly change BPM every 30 seconds, 1 minute, or 2 minutes
+        heartRate = getRandomHeartRate();
+        heartRateDisplay.textContent = heartRate;
+        updateOtherValues();
+
+        // Check if we should flatline
+        if (heartRate === 0) {
+            flatline();
         }
     }, getRandomTimeInterval());
 }
 
 function getRandomHeartRate() {
-    return Math.floor(Math.random() * (100 - 60 + 1)) + 60; // Random heart rate between 60 and 100 BPM
+    // Return a specific heart rate or 0 for flatline
+    const rates = [60, 70, 80, 90, 92, 99, 100, 87, 0]; // Include 0 for flatline
+    return rates[Math.floor(Math.random() * rates.length)];
 }
 
 function getRandomTimeInterval() {
-    return Math.floor(Math.random() * (120000 - 30000 + 1)) + 30000; // Random interval between 30 seconds (30000 ms) and 2 minutes (120000 ms)
+    return Math.floor(Math.random() * (120000 - 30000 + 1)) + 30000; // Random time between 30 seconds and 2 minutes
 }
 
-function updateOtherValues() {
-    const oxygenSaturation = Math.max(95, heartRate - 60 + Math.random() * 10).toFixed(0);
-    spo2Display.textContent = oxygenSaturation;
-    temperatureDisplay.textContent = (36 + Math.random() * 2).toFixed(1);
-    respiratoryRateDisplay.textContent = (12 + Math.floor(Math.random() * 6)).toString(); // Normal range 12-18 RR
-}
-
-function drawHeartbeat(heartRate) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    
-    const pulseHeight = (heartRate - 60) * 3; // Scale pulse height larger
-    const pulseWidth = 30; // Width of each pulse segment
-    const centerY = canvas.height / 2;
-
-    // Draw a heartbeat pattern
-    for (let i = 0; i < canvas.width; i += pulseWidth) {
-        ctx.lineTo(i, centerY);
-        ctx.lineTo(i + pulseWidth / 4, centerY - pulseHeight); // Peak of the pulse
-        ctx.lineTo(i + pulseWidth / 2, centerY);
-    }
-    
-    ctx.strokeStyle = '#007bff'; // Blue color for the heartbeat
-    ctx.lineWidth = 4; // Thicker line for more visibility
-    ctx.stroke();
-    ctx.closePath();
-}
-
-function flatline() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.strokeStyle = 'red'; // Flatline color
-    ctx.lineWidth = 5;
-    ctx.stroke();
-    ctx.closePath();
-    
-    flatlineStatusDisplay.textContent = "Yes";
-}
-
-// Initialize with random values
-startMonitoring();
